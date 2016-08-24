@@ -21,6 +21,7 @@ fun implementDynamic(interfaceKlass: KClass<*>, sourceKlass: KClass<*>, accessor
 }
 
 fun <Interface : Any, Source : Any> getOrCreateDynamic(interfaceKlass: KClass<Interface>, sourceKlass: KClass<Source>): Constructor<*> {
+    require(interfaceKlass.java.isInterface) { "Dynamic type should be interface, but is $interfaceKlass" }
     return emittedWrappers.computeIfAbsent(interfaceKlass to sourceKlass) {
         val prototypeFQN = interfaceKlass.jvmName
         val sourceFQN = sourceKlass.jvmName
