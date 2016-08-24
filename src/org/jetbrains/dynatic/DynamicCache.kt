@@ -1,6 +1,5 @@
 package org.jetbrains.dynatic
 
-import org.jetbrains.dynatic.*
 import java.lang.reflect.*
 import java.util.concurrent.*
 import kotlin.reflect.*
@@ -35,6 +34,14 @@ fun <Interface : Any, Source : Any> getOrCreateDynamic(interfaceKlass: KClass<In
             emitter.getProperty(propertyName, propertyType)
             if (property is KMutableProperty1)
                 emitter.setProperty(propertyName, propertyType)
+        }
+        for (function in interfaceKlass.memberFunctions) {
+            val propertyName = function.name
+            val method = function.javaMethod
+            if (method != null) {
+                val propertyType = org.objectweb.asm.Type.getReturnType(method)
+                emitter.function(propertyName, propertyType, method.parameterTypes.map { org.objectweb.asm.Type.getType(it) })
+            }
         }
         emitter.end()
 

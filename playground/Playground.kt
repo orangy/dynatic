@@ -23,7 +23,8 @@ object RecordAccessor : DynamicAccessor<Record> {
     }
 
     override fun callFunction(source: Record, name: String, type: Type, values: Array<Any?>): Any? {
-        throw UnsupportedOperationException("not implemented") //To change body of created functions use File | Settings | File Templates.
+        println("Call: $name with ${values.toList()}")
+        return 1L
     }
 }
 
@@ -35,21 +36,30 @@ interface DynamicInterface {
     var str: String
     val int: Int
     val iface: IFace
+
+    fun callme(str: String, int: Int) : Long
 }
 
 fun use() {
-    val factory = implementDynamic<DynamicInterface, Record>(RecordAccessor)
-    val instance = factory(Record())
+    val instance = implementDynamic<DynamicInterface, Record>(RecordAccessor)(Record())
+    //val instance = DynamicInterface_delegate_DelegateType(Record(), RecordAccessor)
     println(instance.str)
     println(instance.int)
     instance.str = "poor"
     println(instance.str)
     println(instance.iface.int)
+
+    println(instance.callme("paramstr", 33))
 }
 
 class DynamicInterface_delegate_DelegateType(private val source: Record, private val accessor: DynamicAccessor<Record>) : DynamicInterface {
+    override fun callme(str: String, int: Int): Long {
+        return accessor.callFunction(source, "callme", Long::class.java, arrayOf(str, int)) as Long
+    }
+
     override val iface: IFace
-        get() = throw UnsupportedOperationException()
+        get() = accessor.getProperty(source, "iface", IFace::class.java) as IFace
+
     override var str: String
         get() = accessor.getProperty(source, "str", String::class.java) as String
         set(value) = accessor.setProperty(source, "str", String::class.java, value)
@@ -62,7 +72,7 @@ fun main(args: Array<String>) {
     use()
     return
     run {
-        val classReader = ClassReader("org.jetbrains.elements.dynamic.DynamicInterface_delegate_DelegateType")
+        val classReader = ClassReader("org.jetbrains.dynatic.DynamicInterface_delegate_DelegateType")
         val writer = ClassWriter(0)
         val classVisitor = TraceClassVisitor(writer, ASMifier(), PrintWriter(System.out));
         classReader.accept(classVisitor, 0);

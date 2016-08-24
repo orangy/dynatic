@@ -1,6 +1,5 @@
 package org.jetbrains.dynatic
 
-import org.jetbrains.dynatic.*
 import org.objectweb.asm.*
 import org.objectweb.asm.Opcodes.*
 
@@ -46,77 +45,59 @@ class DynamicGenerator(val generateKlass: String, val sourceKlass: String) {
         }
     }
 
-    fun getProperty(propertyName: String, propertyType: Type) {
-        classWriter.visitMethod(ACC_PUBLIC, "get${propertyName.capitalize()}", "()$propertyType", null, null).apply {
+    fun function(name: String, type: Type, parameters: List<Type>) {
+        val paramSignature = parameters.joinToString("", prefix = "(", postfix = ")")
+        classWriter.visitMethod(ACC_PUBLIC, name, "${paramSignature}$type", null, null).apply {
             visitCode()
             visitVarInsn(ALOAD, 0)
             visitFieldInsn(GETFIELD, generateKlass, "accessor", "L$accessorKlass;")
             visitVarInsn(ALOAD, 0)
             visitFieldInsn(GETFIELD, generateKlass, "source", "L$sourceKlass;")
-            visitLdcInsn(propertyName)
-            visitLdcInsn(getBoxedType(propertyType))
-            visitMethodInsn(INVOKEINTERFACE, accessorKlass, "getProperty", "(Ljava/lang/Object;Ljava/lang/String;Ljava/lang/reflect/Type;)Ljava/lang/Object;", true)
-            when (propertyType) {
-                Type.INT_TYPE -> {
-                    visitTypeInsn(CHECKCAST, "java/lang/Number")
-                    visitMethodInsn(INVOKEVIRTUAL, "java/lang/Number", "intValue", "()I", false)
-                    visitInsn(IRETURN)
-                }
-                Type.BOOLEAN_TYPE -> {
-                    visitTypeInsn(CHECKCAST, "java/lang/Boolean")
-                    visitMethodInsn(INVOKEVIRTUAL, "java/lang/Boolean", "booleanValue", "()Z", false)
-                    visitInsn(IRETURN)
-                }
-                Type.LONG_TYPE -> {
-                    visitTypeInsn(CHECKCAST, "java/lang/Number")
-                    visitMethodInsn(INVOKEVIRTUAL, "java/lang/Number", "longValue", "()J", false)
-                    visitInsn(LRETURN)
-                }
-                Type.DOUBLE_TYPE -> {
-                    visitTypeInsn(CHECKCAST, "java/lang/Number")
-                    visitMethodInsn(INVOKEVIRTUAL, "java/lang/Number", "doubleValue", "()D", false)
-                    visitInsn(DRETURN)
-                }
-                else -> {
-                    visitTypeInsn(CHECKCAST, propertyType.internalName)
-                    visitInsn(ARETURN)
-                }
+            visitLdcInsn(name)
+            visitLdcInsn(getBoxedType(type))
+
+            visitLdcInsn(parameters.size)
+            visitTypeInsn(ANEWARRAY, "java/lang/Object");
+            parameters.forEachIndexed { index, type ->
+                visitInsn(DUP);
+                visitLdcInsn(index)
+                boxTo(type, index + 1)
+                visitInsn(AASTORE);
             }
+
+            visitMethodInsn(INVOKEINTERFACE, accessorKlass, "callFunction", "(Ljava/lang/Object;Ljava/lang/String;Ljava/lang/reflect/Type;[Ljava/lang/Object;)Ljava/lang/Object;", true)
+            unboxReturn(type)
+            visitMaxs(8, parameters.size + 2)
+            visitEnd()
+        }
+    }
+
+    fun getProperty(name: String, type: Type) {
+        classWriter.visitMethod(ACC_PUBLIC, "get${name.capitalize()}", "()$type", null, null).apply {
+            visitCode()
+            visitVarInsn(ALOAD, 0)
+            visitFieldInsn(GETFIELD, generateKlass, "accessor", "L$accessorKlass;")
+            visitVarInsn(ALOAD, 0)
+            visitFieldInsn(GETFIELD, generateKlass, "source", "L$sourceKlass;")
+            visitLdcInsn(name)
+            visitLdcInsn(getBoxedType(type))
+            visitMethodInsn(INVOKEINTERFACE, accessorKlass, "getProperty", "(Ljava/lang/Object;Ljava/lang/String;Ljava/lang/reflect/Type;)Ljava/lang/Object;", true)
+            unboxReturn(type)
             visitMaxs(5, 1)
             visitEnd()
         }
     }
 
-    fun setProperty(propertyName: String, propertyType: Type) {
-        classWriter.visitMethod(ACC_PUBLIC, "set${propertyName.capitalize()}", "($propertyType)V", null, null).apply {
+    fun setProperty(name: String, type: Type) {
+        classWriter.visitMethod(ACC_PUBLIC, "set${name.capitalize()}", "($type)V", null, null).apply {
             visitCode()
             visitVarInsn(ALOAD, 0)
             visitFieldInsn(GETFIELD, generateKlass, "accessor", "L$accessorKlass;")
             visitVarInsn(ALOAD, 0)
             visitFieldInsn(GETFIELD, generateKlass, "source", "L$sourceKlass;")
-            visitLdcInsn(propertyName)
-            visitLdcInsn(getBoxedType(propertyType))
-            when (propertyType) {
-                Type.INT_TYPE -> {
-                    visitVarInsn(Opcodes.ILOAD, 1)
-                    visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;", false)
-                }
-                Type.BOOLEAN_TYPE -> {
-                    visitVarInsn(Opcodes.ILOAD, 1)
-                    visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Boolean", "valueOf", "(Z)Ljava/lang/Boolean;", false)
-                }
-                Type.LONG_TYPE -> {
-                    visitVarInsn(Opcodes.LLOAD, 1)
-                    visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Long", "valueOf", "(J)Ljava/lang/Long;", false)
-                }
-                Type.DOUBLE_TYPE -> {
-                    visitVarInsn(Opcodes.DLOAD, 1)
-                    visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Double", "valueOf", "(D)Ljava/lang/Double;", false)
-                }
-                else -> {
-                    visitVarInsn(Opcodes.ALOAD, 1)
-                }
-            }
+            visitLdcInsn(name)
+            visitLdcInsn(getBoxedType(type))
+            boxTo(type, 1)
             visitMethodInsn(INVOKEINTERFACE, accessorKlass, "setProperty", "(Ljava/lang/Object;Ljava/lang/String;Ljava/lang/reflect/Type;Ljava/lang/Object;)V", true)
             visitInsn(RETURN)
             visitMaxs(6, 3)
@@ -124,8 +105,65 @@ class DynamicGenerator(val generateKlass: String, val sourceKlass: String) {
         }
     }
 
+    private fun MethodVisitor.boxTo(type: Type, index: Int) {
+        when (type) {
+            Type.INT_TYPE -> {
+                visitVarInsn(ILOAD, index)
+                visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;", false)
+            }
+            Type.BOOLEAN_TYPE -> {
+                visitVarInsn(ILOAD, index)
+                visitMethodInsn(INVOKESTATIC, "java/lang/Boolean", "valueOf", "(Z)Ljava/lang/Boolean;", false)
+            }
+            Type.LONG_TYPE -> {
+                visitVarInsn(LLOAD, index)
+                visitMethodInsn(INVOKESTATIC, "java/lang/Long", "valueOf", "(J)Ljava/lang/Long;", false)
+            }
+            Type.DOUBLE_TYPE -> {
+                visitVarInsn(DLOAD, index)
+                visitMethodInsn(INVOKESTATIC, "java/lang/Double", "valueOf", "(D)Ljava/lang/Double;", false)
+            }
+            else -> {
+                visitVarInsn(ALOAD, index)
+            }
+        }
+    }
+
+    private fun MethodVisitor.unboxReturn(type: Type) {
+        when (type) {
+            Type.INT_TYPE -> {
+                visitTypeInsn(CHECKCAST, "java/lang/Number")
+                visitMethodInsn(INVOKEVIRTUAL, "java/lang/Number", "intValue", "()I", false)
+                visitInsn(IRETURN)
+            }
+            Type.BOOLEAN_TYPE -> {
+                visitTypeInsn(CHECKCAST, "java/lang/Boolean")
+                visitMethodInsn(INVOKEVIRTUAL, "java/lang/Boolean", "booleanValue", "()Z", false)
+                visitInsn(IRETURN)
+            }
+            Type.LONG_TYPE -> {
+                visitTypeInsn(CHECKCAST, "java/lang/Number")
+                visitMethodInsn(INVOKEVIRTUAL, "java/lang/Number", "longValue", "()J", false)
+                visitInsn(LRETURN)
+            }
+            Type.DOUBLE_TYPE -> {
+                visitTypeInsn(CHECKCAST, "java/lang/Number")
+                visitMethodInsn(INVOKEVIRTUAL, "java/lang/Number", "doubleValue", "()D", false)
+                visitInsn(DRETURN)
+            }
+            Type.VOID_TYPE -> {
+                visitInsn(RETURN)
+            }
+            else -> {
+                visitTypeInsn(CHECKCAST, type.internalName)
+                visitInsn(ARETURN)
+            }
+        }
+    }
+
     private fun getBoxedType(klass: Type): Type =
             when (klass.sort) {
+                Type.VOID -> Type.getObjectType("java/lang/Void")
                 Type.BYTE -> Type.getObjectType("java/lang/Byte")
                 Type.BOOLEAN -> Type.getObjectType("java/lang/Boolean")
                 Type.SHORT -> Type.getObjectType("java/lang/Short")
