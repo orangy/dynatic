@@ -1,27 +1,33 @@
 package org.jetbrains.dynatic
 
-import java.lang.reflect.*
 import java.util.concurrent.*
 import kotlin.reflect.*
 import kotlin.reflect.jvm.*
 
-private val emittedWrappers: ConcurrentMap<Pair<KClass<*>, KClass<*>>, Constructor<*>> = ConcurrentHashMap<Pair<KClass<*>, KClass<*>>, Constructor<*>>()
+private val emittedWrappers: ConcurrentMap<Pair<KClass<*>, KClass<*>>, (Any, Any) -> Any> = ConcurrentHashMap<Pair<KClass<*>, KClass<*>>, (Any, Any) -> Any>()
 private val emitClassLoaders: ConcurrentMap<ClassLoader, EmitClassLoader> = ConcurrentHashMap()
 
-private class EmitClassLoader(parent: ClassLoader) : ClassLoader(parent) {
+internal class EmitClassLoader(parent: ClassLoader) : ClassLoader(parent) {
     fun defineClass(name: String, b: ByteArray): Class<*> = defineClass(name, b, 0, b.size)
 }
 
 inline fun <reified Interface : Any, reified Source : Any> implementDynamic(accessor: DynamicAccessor<Source>): (Source) -> Interface {
-    return { getOrCreateDynamic(Interface::class, Source::class).newInstance(it, accessor) as Interface }
+    val factory = getOrCreateDynamic(Interface::class, Source::class) as (Source, DynamicAccessor<Source>) -> Interface
+    return { factory(it, accessor) }
 }
 
 fun implementDynamic(interfaceKlass: KClass<*>, sourceKlass: KClass<*>, accessor: DynamicAccessor<*>): (Any) -> Any {
-    return { getOrCreateDynamic(interfaceKlass, sourceKlass).newInstance(it, accessor) }
+    val factory = getOrCreateDynamic(interfaceKlass, sourceKlass)
+    return { factory(it, accessor) }
 }
 
-fun <Interface : Any, Source : Any> getOrCreateDynamic(interfaceKlass: KClass<Interface>, sourceKlass: KClass<Source>): Constructor<*> {
+fun <Interface : Any, Source : Any> getOrCreateDynamic(interfaceKlass: KClass<Interface>, sourceKlass: KClass<Source>): (Any, Any) -> Any {
     require(interfaceKlass.java.isInterface) { "Dynamic type should be interface, but is $interfaceKlass" }
+    val parentClassLoader = interfaceKlass.java.classLoader
+    val classLoader = emitClassLoaders.computeIfAbsent(parentClassLoader) {
+        EmitClassLoader(parentClassLoader)
+    }
+
     return emittedWrappers.computeIfAbsent(interfaceKlass to sourceKlass) {
         val prototypeFQN = interfaceKlass.jvmName
         val sourceFQN = sourceKlass.jvmName
@@ -46,16 +52,17 @@ fun <Interface : Any, Source : Any> getOrCreateDynamic(interfaceKlass: KClass<In
         }
         emitter.end()
 
-        val parentClassLoader = interfaceKlass.java.classLoader
-        val classLoader = emitClassLoaders.computeIfAbsent(parentClassLoader) {
-            EmitClassLoader(parentClassLoader)
+        val implementationKlass = classLoader.defineClass(generateKlass, emitter.getBytes())
+        if (useGeneratedFactory) {
+            val factoryClass = generateFactory(classLoader, generateKlass, sourceFQN.replace('.', '/'))
+            val factory = factoryClass.getConstructor().newInstance() as (Any, Any) -> Any
+            factory
+        } else {
+            val implementationConstructor = implementationKlass.getConstructor(sourceKlass.java, DynamicAccessor::class.java)
+            val ctorFactory: (Any, Any) -> Any = { source, accessor -> implementationConstructor.newInstance(source, accessor) }
+            ctorFactory
         }
-
-        classLoader
-                .defineClass(generateKlass, emitter.getBytes())
-                .getConstructor(sourceKlass.java, DynamicAccessor::class.java)
-                .apply {
-                    isAccessible = true
-                }
     }
 }
+
+var useGeneratedFactory = false

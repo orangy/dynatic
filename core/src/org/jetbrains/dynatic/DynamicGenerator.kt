@@ -9,7 +9,7 @@ class DynamicGenerator(val generateKlass: String, val sourceKlass: String) {
     private val classWriter = ClassWriter(0)
 
     fun begin(protoName: String) {
-        classWriter.visit(V1_7, ACC_FINAL + ACC_SUPER, generateKlass, null, "java/lang/Object", arrayOf(protoName))
+        classWriter.visit(V1_8, ACC_PUBLIC + ACC_FINAL + ACC_SUPER, generateKlass, null, "java/lang/Object", arrayOf(protoName))
         classWriter.visitField(ACC_PRIVATE + ACC_FINAL, "source", "L$sourceKlass;", null, null).visitEnd()
         classWriter.visitField(ACC_PRIVATE + ACC_FINAL, "accessor", "L$accessorKlass;", "L$accessorKlass<L$sourceKlass;>;", null).visitEnd()
 
@@ -47,7 +47,7 @@ class DynamicGenerator(val generateKlass: String, val sourceKlass: String) {
 
     fun function(name: String, type: Type, parameters: List<Type>) {
         val paramSignature = parameters.joinToString("", prefix = "(", postfix = ")")
-        classWriter.visitMethod(ACC_PUBLIC, name, "${paramSignature}$type", null, null).apply {
+        classWriter.visitMethod(ACC_PUBLIC + ACC_FINAL, name, "${paramSignature}$type", null, null).apply {
             visitCode()
             visitVarInsn(ALOAD, 0)
             visitFieldInsn(GETFIELD, generateKlass, "accessor", "L$accessorKlass;")
@@ -73,7 +73,7 @@ class DynamicGenerator(val generateKlass: String, val sourceKlass: String) {
     }
 
     fun getProperty(name: String, type: Type) {
-        classWriter.visitMethod(ACC_PUBLIC, "get${name.capitalize()}", "()$type", null, null).apply {
+        classWriter.visitMethod(ACC_PUBLIC + ACC_FINAL, "get${name.capitalize()}", "()$type", null, null).apply {
             visitCode()
             visitVarInsn(ALOAD, 0)
             visitFieldInsn(GETFIELD, generateKlass, "accessor", "L$accessorKlass;")
@@ -89,7 +89,7 @@ class DynamicGenerator(val generateKlass: String, val sourceKlass: String) {
     }
 
     fun setProperty(name: String, type: Type) {
-        classWriter.visitMethod(ACC_PUBLIC, "set${name.capitalize()}", "($type)V", null, null).apply {
+        classWriter.visitMethod(ACC_PUBLIC + ACC_FINAL, "set${name.capitalize()}", "($type)V", null, null).apply {
             visitCode()
             visitVarInsn(ALOAD, 0)
             visitFieldInsn(GETFIELD, generateKlass, "accessor", "L$accessorKlass;")

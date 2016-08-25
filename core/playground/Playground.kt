@@ -37,11 +37,12 @@ interface DynamicInterface {
     val int: Int
     val iface: IFace
 
-    fun callme(str: String, int: Int) : Long
+    fun callme(str: String, int: Int): Long
 }
 
 fun use() {
-    val instance = implementDynamic<DynamicInterface, Record>(RecordAccessor)(Record())
+    val dynamic = implementDynamic<DynamicInterface, Record>(RecordAccessor)
+    val instance = dynamic(Record())
     //val instance = DynamicInterface_delegate_DelegateType(Record(), RecordAccessor)
     println(instance.str)
     println(instance.int)
@@ -69,10 +70,15 @@ class DynamicInterface_delegate_DelegateType(private val source: Record, private
 }
 
 fun main(args: Array<String>) {
+    repeat(100) {
+        implementDynamic<DynamicInterface, Record>(RecordAccessor)(Record())
+    }
     use()
-    return
+    //return
+
+    val factory: (Record, DynamicAccessor<Record>) -> DynamicInterface = ::DynamicInterface_delegate_DelegateType
     run {
-        val classReader = ClassReader("org.jetbrains.dynatic.DynamicInterface_delegate_DelegateType")
+        val classReader = ClassReader("sun.reflect.GeneratedConstructorAccessor1")
         val writer = ClassWriter(0)
         val classVisitor = TraceClassVisitor(writer, ASMifier(), PrintWriter(System.out));
         classReader.accept(classVisitor, 0);
