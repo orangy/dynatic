@@ -8,39 +8,46 @@ import java.util.concurrent.*
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
 @State(Scope.Thread)
-open class MapBenchmark {
+open class MapBenchmarkReflection {
     val map = mapOf("count" to 12, "size" to 42L, "percent" to 99.9)
 
-    @CompilerControl(CompilerControl.Mode.DONT_INLINE)
-    @Benchmark
-    open fun dynamicGenerate(): Double {
-        useGeneratedFactory = true
-        val numbers = map.mapCast<Numbers>()
-        return numbers.count + numbers.size + numbers.percent
+    init {
+        useGeneratedFactory = false
+        emittedWrappers.clear()
     }
+
+    val accesor = MapAccessor
+    val mapper = { it: Map<String, Any> -> getOrCreateDynamic(Numbers::class, Map::class)(it, accesor) }
 
     @CompilerControl(CompilerControl.Mode.DONT_INLINE)
     @Benchmark
     open fun dynamicReflection(): Double {
-        useGeneratedFactory = false
-        val numbers = map.mapCast<Numbers>()
-        return numbers.count + numbers.size + numbers.percent
-    }
-
-    @CompilerControl(CompilerControl.Mode.DONT_INLINE)
-    //@Benchmark
-    open fun proxy(): Double {
-        val klass = Numbers::class.java
-        val numbers = Proxy.newProxyInstance(klass.classLoader, arrayOf(klass), MapInvocationHandler(map)) as Numbers
+        val numbers = mapper(map) as Numbers
+        //val numbers = map.mapCast<Numbers>()
         return numbers.count + numbers.size + numbers.percent
     }
 }
 
-class MapInvocationHandler(val map: Map<String, Any?>) : InvocationHandler {
-    override fun invoke(proxy: Any?, method: Method, args: Array<out Any>?): Any? {
-        val methodName = method.name
-        val propname = methodName.drop(3).decapitalize()
-        return map[propname] ?: throw IllegalAccessException("property $methodName not found")
+@BenchmarkMode(Mode.AverageTime)
+@OutputTimeUnit(TimeUnit.NANOSECONDS)
+@State(Scope.Thread)
+open class MapBenchmarkGen {
+    val map = mapOf("count" to 12, "size" to 42L, "percent" to 99.9)
+
+    init {
+        useGeneratedFactory = true
+        emittedWrappers.clear()
+    }
+
+    val accesor = MapAccessor
+    val mapper = { it: Map<String, Any> -> getOrCreateDynamic(Numbers::class, Map::class)(it, accesor) }
+
+    @CompilerControl(CompilerControl.Mode.DONT_INLINE)
+    @Benchmark
+    open fun dynamicGenerate(): Double {
+        val numbers = mapper(map) as Numbers
+        //val numbers = map.mapCast<Numbers>()
+        return numbers.count + numbers.size + numbers.percent
     }
 }
 

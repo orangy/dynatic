@@ -4,7 +4,7 @@ import java.util.concurrent.*
 import kotlin.reflect.*
 import kotlin.reflect.jvm.*
 
-private val emittedWrappers: ConcurrentMap<Pair<KClass<*>, KClass<*>>, (Any, Any) -> Any> = ConcurrentHashMap<Pair<KClass<*>, KClass<*>>, (Any, Any) -> Any>()
+val emittedWrappers: ConcurrentMap<Pair<KClass<*>, KClass<*>>, (Any, Any) -> Any> = ConcurrentHashMap<Pair<KClass<*>, KClass<*>>, (Any, Any) -> Any>()
 private val emitClassLoaders: ConcurrentMap<ClassLoader, EmitClassLoader> = ConcurrentHashMap()
 
 internal class EmitClassLoader(parent: ClassLoader) : ClassLoader(parent) {
@@ -22,13 +22,8 @@ fun implementDynamic(interfaceKlass: KClass<*>, sourceKlass: KClass<*>, accessor
 }
 
 fun <Interface : Any, Source : Any> getOrCreateDynamic(interfaceKlass: KClass<Interface>, sourceKlass: KClass<Source>): (Any, Any) -> Any {
-    require(interfaceKlass.java.isInterface) { "Dynamic type should be interface, but is $interfaceKlass" }
-    val parentClassLoader = interfaceKlass.java.classLoader
-    val classLoader = emitClassLoaders.computeIfAbsent(parentClassLoader) {
-        EmitClassLoader(parentClassLoader)
-    }
-
     return emittedWrappers.computeIfAbsent(interfaceKlass to sourceKlass) {
+        require(interfaceKlass.java.isInterface) { "Dynamic type should be interface, but is $interfaceKlass" }
         val prototypeFQN = interfaceKlass.jvmName
         val sourceFQN = sourceKlass.jvmName
         val generateKlass = "$prototypeFQN\$delegate\$${sourceKlass.simpleName}"
@@ -51,6 +46,11 @@ fun <Interface : Any, Source : Any> getOrCreateDynamic(interfaceKlass: KClass<In
             }
         }
         emitter.end()
+
+        val parentClassLoader = interfaceKlass.java.classLoader
+        val classLoader = emitClassLoaders.computeIfAbsent(parentClassLoader) {
+            EmitClassLoader(parentClassLoader)
+        }
 
         val implementationKlass = classLoader.defineClass(generateKlass, emitter.getBytes())
         if (useGeneratedFactory) {
