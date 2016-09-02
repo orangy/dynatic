@@ -5,28 +5,6 @@ import org.openjdk.jmh.annotations.*
 import java.lang.reflect.*
 import java.util.concurrent.*
 
-@BenchmarkMode(Mode.AverageTime)
-@OutputTimeUnit(TimeUnit.NANOSECONDS)
-@State(Scope.Thread)
-open class MapBenchmarkReflection {
-    val map = mapOf("count" to 12, "size" to 42L, "percent" to 99.9)
-
-    init {
-        useGeneratedFactory = false
-        emittedWrappers.clear()
-    }
-
-    val mapper = implementDynamic(Numbers::class, Map::class, MapAccessor)
-
-    @CompilerControl(CompilerControl.Mode.DONT_INLINE)
-    @Benchmark
-    open fun dynamicReflection(): Double {
-        val numbers = implementDynamic<Numbers, Map<String, Any?>>(MapAccessor)(map)
-        //val numbers = mapper(map) as Numbers
-        //val numbers = map.mapCast<Numbers>()
-        return numbers.count + numbers.size + numbers.percent
-    }
-}
 
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
@@ -35,7 +13,6 @@ open class MapBenchmarkGen {
     val map = mapOf("count" to 12, "size" to 42L, "percent" to 99.9)
 
     init {
-        useGeneratedFactory = true
         emittedWrappers.clear()
     }
 

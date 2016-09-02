@@ -47,7 +47,7 @@ class DynamicGenerator(val generateKlass: String, val sourceKlass: String) {
 
     fun function(name: String, type: Type, parameters: List<Type>) {
         val paramSignature = parameters.joinToString("", prefix = "(", postfix = ")")
-        classWriter.visitMethod(ACC_PUBLIC + ACC_FINAL, name, "${paramSignature}$type", null, null).apply {
+        classWriter.visitMethod(ACC_PUBLIC + ACC_FINAL, name, "$paramSignature$type", null, null).apply {
             visitCode()
             visitVarInsn(ALOAD, 0)
             visitFieldInsn(GETFIELD, generateKlass, "accessor", "L$accessorKlass;")
@@ -57,12 +57,12 @@ class DynamicGenerator(val generateKlass: String, val sourceKlass: String) {
             visitLdcInsn(getBoxedType(type))
 
             visitLdcInsn(parameters.size)
-            visitTypeInsn(ANEWARRAY, "java/lang/Object");
+            visitTypeInsn(ANEWARRAY, "java/lang/Object")
             parameters.forEachIndexed { index, type ->
-                visitInsn(DUP);
+                visitInsn(DUP)
                 visitLdcInsn(index)
                 boxTo(type, index + 1)
-                visitInsn(AASTORE);
+                visitInsn(AASTORE)
             }
 
             visitMethodInsn(INVOKEINTERFACE, accessorKlass, "callFunction", "(Ljava/lang/Object;Ljava/lang/String;Ljava/lang/reflect/Type;[Ljava/lang/Object;)Ljava/lang/Object;", true)
