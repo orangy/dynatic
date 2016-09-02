@@ -20,19 +20,23 @@ open class MapBenchmarkGen {
 
     @CompilerControl(CompilerControl.Mode.DONT_INLINE)
     @Benchmark
-    open fun dynamicGenerate(): Double {
-        val numbers = implementDynamic<Numbers, Map<String, Any?>>(MapAccessor)(map)
-        //val numbers = mapper(map) as Numbers
+    open fun dynamicGenerateMapper(): Double {
+        val numbers = mapper(map)
+        return numbers.count + numbers.size + numbers.percent
+    }
+
+    @CompilerControl(CompilerControl.Mode.DONT_INLINE)
+    @Benchmark
+    open fun dynamicGenerateEach(): Double {
+        val numbers = implementDynamic(Numbers::class, Map::class, MapAccessor)(map)
         //val numbers = map.mapCast<Numbers>()
         return numbers.count + numbers.size + numbers.percent
     }
 
     @CompilerControl(CompilerControl.Mode.DONT_INLINE)
     @Benchmark
-    open fun dynamicGenerateNoInline(): Double {
-        val numbers = implementDynamic(Numbers::class, Map::class, MapAccessor)(map)
-        //val numbers = mapper(map) as Numbers
-        //val numbers = map.mapCast<Numbers>()
+    open fun dynamicGenerateInline(): Double {
+        val numbers = map.mapCast<Numbers>()
         return numbers.count + numbers.size + numbers.percent
     }
 }

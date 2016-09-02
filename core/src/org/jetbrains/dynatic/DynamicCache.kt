@@ -5,7 +5,7 @@ import java.util.concurrent.*
 import kotlin.reflect.*
 import kotlin.reflect.jvm.*
 
-val emittedWrappers: ConcurrentMap<Pair<KClass<*>, KClass<*>>, Constructor<*>> = ConcurrentHashMap<Pair<KClass<*>, KClass<*>>, Constructor<*>>()
+val emittedWrappers: ConcurrentMap<Pair<Class<*>, Class<*>>, Constructor<*>> = ConcurrentHashMap<Pair<Class<*>, Class<*>>, Constructor<*>>()
 private val emitClassLoaders: ConcurrentMap<ClassLoader, EmitClassLoader> = ConcurrentHashMap()
 
 internal class EmitClassLoader(parent: ClassLoader) : ClassLoader(parent) {
@@ -19,11 +19,14 @@ inline fun <reified Interface : Any, reified Source : Any> implementDynamic(acce
 @Suppress("UNCHECKED_CAST")
 fun <Interface : Any, Source : Any> implementDynamic(interfaceKlass: KClass<Interface>, sourceKlass: KClass<Source>, accessor: DynamicAccessor<*>): (Source) -> Interface {
     val factory = getOrGenerateFactory(interfaceKlass, sourceKlass)
-    return factory.newInstance(accessor) as (Source) -> Interface
+    return { source -> factory.newInstance(source, accessor) as Interface }
+
+    // Somehow the manually generated factory is slower than VM generated
+    //return factory.newInstance(accessor) as (Source) -> Interface
 }
 
 fun <Interface : Any, Source : Any> getOrGenerateFactory(interfaceKlass: KClass<Interface>, sourceKlass: KClass<Source>): Constructor<*> {
-    return emittedWrappers.computeIfAbsent(interfaceKlass to sourceKlass) {
+    return emittedWrappers.computeIfAbsent(interfaceKlass.java to sourceKlass.java) {
         require(interfaceKlass.java.isInterface) { "Dynamic type should be interface, but is $interfaceKlass" }
         val prototypeFQN = interfaceKlass.jvmName
         val sourceFQN = sourceKlass.jvmName
@@ -52,8 +55,13 @@ fun <Interface : Any, Source : Any> getOrGenerateFactory(interfaceKlass: KClass<
         val classLoader = emitClassLoaders.computeIfAbsent(parentClassLoader) {
             EmitClassLoader(parentClassLoader)
         }
-        classLoader.defineClass(generateKlass, emitter.getBytes())
+        val implementationClass = classLoader.defineClass(generateKlass, emitter.getBytes())
+        implementationClass.getConstructor(sourceKlass.java, DynamicAccessor::class.java)
+
+/*
+      // Somehow the manually generated factory is slower than VM generated
         val factoryClass = generateFactory(classLoader, generateKlass, sourceFQN.replace('.', '/'))
         factoryClass.getConstructor(DynamicAccessor::class.java)
+*/
     }
 }
