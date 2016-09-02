@@ -26,6 +26,15 @@ open class MapBenchmarkGen {
         //val numbers = map.mapCast<Numbers>()
         return numbers.count + numbers.size + numbers.percent
     }
+
+    @CompilerControl(CompilerControl.Mode.DONT_INLINE)
+    @Benchmark
+    open fun dynamicGenerateNoInline(): Double {
+        val numbers = implementDynamic(Numbers::class, Map::class, MapAccessor)(map)
+        //val numbers = mapper(map) as Numbers
+        //val numbers = map.mapCast<Numbers>()
+        return numbers.count + numbers.size + numbers.percent
+    }
 }
 
 interface Numbers {

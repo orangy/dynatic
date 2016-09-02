@@ -17,9 +17,9 @@ inline fun <reified Interface : Any, reified Source : Any> implementDynamic(acce
     return factory.newInstance(accessor) as (Source) -> Interface
 }
 
-fun implementDynamic(interfaceKlass: KClass<*>, sourceKlass: KClass<*>, accessor: DynamicAccessor<*>): (Any) -> Any {
+fun <Interface : Any, Source : Any> implementDynamic(interfaceKlass: KClass<Interface>, sourceKlass: KClass<Source>, accessor: DynamicAccessor<*>): (Source) -> Interface {
     val factory = getOrGenerateFactory(interfaceKlass, sourceKlass)
-    return factory.newInstance(accessor) as (Any) -> Any
+    return factory.newInstance(accessor) as (Source) -> Interface
 }
 
 fun <Interface : Any, Source : Any> getOrGenerateFactory(interfaceKlass: KClass<Interface>, sourceKlass: KClass<Source>): Constructor<*> {

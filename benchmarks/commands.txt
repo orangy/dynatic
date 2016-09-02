@@ -5,3 +5,22 @@ java -jar benchmarks/target/benchmarks.jar -wi 20 -i 20 -f 1 -tu ns -prof stack
 java -XX:+UnlockDiagnosticVMOptions -XX:+LogCompilation -jar benchmarks/target/benchmarks.jar -wi 5 -i 5 -f 1 -tu ns
 java -XX:+UnlockDiagnosticVMOptions -XX:PrintAssemblyOptions=intel -jar benchmarks/target/benchmarks.jar -wi 5 -i 5 -f 1 -tu ns
 java -XX:+UnlockDiagnosticVMOptions -XX:CompileCommand=print,*.invoke -XX:PrintAssemblyOptions=intel -XX:-UseCompressedOops -jar benchmarks/target/benchmarks.jar -wi 5 -i 5 -f 1 -tu ns
+java -XX:+UnlockDiagnosticVMOptions -XX:CompileCommand=print,*magic* -jar benchmarks/target/benchmarks.jar -wi 5 -i 5 -f 1 -tu ns
+
+// old, each time
+Benchmark                                 Mode  Cnt    Score   Error  Units
+MapBenchmarkGen.dynamicGenerate           avgt    5  109.435 ± 8.457  ns/op
+MapBenchmarkReflection.dynamicReflection  avgt    5   67.215 ± 2.592  ns/op
+
+// old, mapper
+Benchmark                                 Mode  Cnt   Score   Error  Units
+MapBenchmarkGen.dynamicGenerate           avgt    5  16.359 ± 0.256  ns/op
+MapBenchmarkReflection.dynamicReflection  avgt    5  17.732 ± 0.286  ns/op
+
+// new, each time
+Benchmark                        Mode  Cnt   Score   Error  Units
+MapBenchmarkGen.dynamicGenerate  avgt    5  93.564 ± 4.239  ns/op
+
+// new, mapper
+Benchmark                        Mode  Cnt   Score   Error  Units
+MapBenchmarkGen.dynamicGenerate  avgt    5  16.331 ± 0.878  ns/op
