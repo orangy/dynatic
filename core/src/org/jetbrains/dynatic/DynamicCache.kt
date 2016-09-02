@@ -13,10 +13,10 @@ internal class EmitClassLoader(parent: ClassLoader) : ClassLoader(parent) {
 }
 
 inline fun <reified Interface : Any, reified Source : Any> implementDynamic(accessor: DynamicAccessor<Source>): (Source) -> Interface {
-    val factory = getOrGenerateFactory(Interface::class, Source::class)
-    return factory.newInstance(accessor) as (Source) -> Interface
+    return implementDynamic(Interface::class, Source::class, accessor)
 }
 
+@Suppress("UNCHECKED_CAST")
 fun <Interface : Any, Source : Any> implementDynamic(interfaceKlass: KClass<Interface>, sourceKlass: KClass<Source>, accessor: DynamicAccessor<*>): (Source) -> Interface {
     val factory = getOrGenerateFactory(interfaceKlass, sourceKlass)
     return factory.newInstance(accessor) as (Source) -> Interface
