@@ -16,13 +16,13 @@ open class MapBenchmarkReflection {
         emittedWrappers.clear()
     }
 
-    val accesor = MapAccessor
-    val mapper = { it: Map<String, Any> -> getOrCreateDynamic(Numbers::class, Map::class)(it, accesor) }
+    val mapper = implementDynamic(Numbers::class, Map::class, MapAccessor)
 
     @CompilerControl(CompilerControl.Mode.DONT_INLINE)
     @Benchmark
     open fun dynamicReflection(): Double {
-        val numbers = mapper(map) as Numbers
+        val numbers = implementDynamic<Numbers, Map<String, Any?>>(MapAccessor)(map)
+        //val numbers = mapper(map) as Numbers
         //val numbers = map.mapCast<Numbers>()
         return numbers.count + numbers.size + numbers.percent
     }
@@ -39,13 +39,13 @@ open class MapBenchmarkGen {
         emittedWrappers.clear()
     }
 
-    val accesor = MapAccessor
-    val mapper = { it: Map<String, Any> -> getOrCreateDynamic(Numbers::class, Map::class)(it, accesor) }
+    val mapper = implementDynamic(Numbers::class, Map::class, MapAccessor)
 
     @CompilerControl(CompilerControl.Mode.DONT_INLINE)
     @Benchmark
     open fun dynamicGenerate(): Double {
-        val numbers = mapper(map) as Numbers
+        val numbers = implementDynamic<Numbers, Map<String, Any?>>(MapAccessor)(map)
+        //val numbers = mapper(map) as Numbers
         //val numbers = map.mapCast<Numbers>()
         return numbers.count + numbers.size + numbers.percent
     }
