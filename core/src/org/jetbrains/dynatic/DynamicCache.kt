@@ -37,16 +37,16 @@ fun <Interface : Any, Source : Any> getOrGenerateFactory(interfaceKlass: KClass<
             val propertyName = property.name
             val propertyType = org.objectweb.asm.Type.getReturnType(property.getter.javaMethod)
 
-            emitter.getProperty(propertyName, propertyType)
+            emitter.getProperty(interfaceKlass, propertyName, propertyType)
             if (property is KMutableProperty1)
-                emitter.setProperty(propertyName, propertyType)
+                emitter.setProperty(interfaceKlass, propertyName, propertyType)
         }
         for (function in interfaceKlass.memberFunctions) {
             val propertyName = function.name
             val method = function.javaMethod
             if (method != null) {
                 val propertyType = org.objectweb.asm.Type.getReturnType(method)
-                emitter.function(propertyName, propertyType, method.parameterTypes.map { org.objectweb.asm.Type.getType(it) })
+                emitter.function(interfaceKlass, propertyName, propertyType, method.parameterTypes.map { org.objectweb.asm.Type.getType(it) })
             }
         }
         emitter.end()

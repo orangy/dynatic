@@ -2,6 +2,8 @@ package org.jetbrains.dynatic
 
 import org.objectweb.asm.*
 import org.objectweb.asm.Opcodes.*
+import kotlin.reflect.*
+import kotlin.reflect.jvm.*
 
 class DynamicGenerator(val generateKlass: String, val sourceKlass: String) {
     private val accessorKlass = Type.getInternalName(DynamicAccessor::class.java)
@@ -45,7 +47,7 @@ class DynamicGenerator(val generateKlass: String, val sourceKlass: String) {
         }
     }
 
-    fun function(name: String, type: Type, parameters: List<Type>) {
+    fun function(klass: KClass<*>, name: String, type: Type, parameters: List<Type>) {
         val paramSignature = parameters.joinToString("", prefix = "(", postfix = ")")
         classWriter.visitMethod(ACC_PUBLIC + ACC_FINAL, name, "$paramSignature$type", null, null).apply {
             visitCode()
@@ -70,9 +72,11 @@ class DynamicGenerator(val generateKlass: String, val sourceKlass: String) {
             visitMaxs(8, parameters.size + 2)
             visitEnd()
         }
+
+        // TODO: build bridges
     }
 
-    fun getProperty(name: String, type: Type) {
+    fun getProperty(klass: KClass<*>, name: String, type: Type) {
         classWriter.visitMethod(ACC_PUBLIC + ACC_FINAL, "get${name.capitalize()}", "()$type", null, null).apply {
             visitCode()
             visitVarInsn(ALOAD, 0)
@@ -86,9 +90,23 @@ class DynamicGenerator(val generateKlass: String, val sourceKlass: String) {
             visitMaxs(5, 1)
             visitEnd()
         }
+
+        val bridgeTypes = collectBridgeTypes(mutableListOf<Type>(), klass.java, name)
+        bridgeTypes.distinct().forEach { bridgeType ->
+            if (bridgeType != type) {
+                classWriter.visitMethod(ACC_PUBLIC + ACC_BRIDGE + ACC_SYNTHETIC, "get${name.capitalize()}", "()$bridgeType", null, null).apply {
+                    visitCode()
+                    visitVarInsn(ALOAD, 0)
+                    visitMethodInsn(INVOKESPECIAL, generateKlass, "get${name.capitalize()}", "()$type", true)
+                    visitInsn(ARETURN)
+                    visitMaxs(1, 1)
+                    visitEnd()
+                }
+            }
+        }
     }
 
-    fun setProperty(name: String, type: Type) {
+    fun setProperty(klass: KClass<*>, name: String, type: Type) {
         classWriter.visitMethod(ACC_PUBLIC + ACC_FINAL, "set${name.capitalize()}", "($type)V", null, null).apply {
             visitCode()
             visitVarInsn(ALOAD, 0)
@@ -103,6 +121,22 @@ class DynamicGenerator(val generateKlass: String, val sourceKlass: String) {
             visitMaxs(6, 3)
             visitEnd()
         }
+        val bridgeTypes = collectBridgeTypes(mutableListOf<Type>(), klass.java, name)
+        bridgeTypes.distinct().forEach { bridgeType ->
+            if (bridgeType != type) {
+                classWriter.visitMethod(ACC_PUBLIC + ACC_BRIDGE + ACC_SYNTHETIC, "set${name.capitalize()}", "($bridgeType)V", null, null).apply {
+                    visitCode()
+                    visitVarInsn(ALOAD, 0)
+                    visitVarInsn(ALOAD, 1)
+                    visitTypeInsn(CHECKCAST, type.internalName)
+                    visitMethodInsn(INVOKESPECIAL, generateKlass, "set${name.capitalize()}", "($type)V", true)
+                    visitInsn(RETURN)
+                    visitMaxs(2, 2)
+                    visitEnd()
+                }
+            }
+        }
+
     }
 
     private fun MethodVisitor.boxTo(type: Type, index: Int) {
@@ -159,6 +193,16 @@ class DynamicGenerator(val generateKlass: String, val sourceKlass: String) {
                 visitInsn(ARETURN)
             }
         }
+    }
+
+    fun collectBridgeTypes(list: MutableCollection<Type>, klass: Class<*>, name: String): MutableCollection<Type> {
+        klass.kotlin.memberProperties.filter { it.name == name }.forEach {
+            list.add(org.objectweb.asm.Type.getReturnType(it.getter.javaMethod))
+        }
+        for (superInterface in klass.interfaces) {
+            collectBridgeTypes(list, superInterface, name)
+        }
+        return list
     }
 
     private fun getBoxedType(klass: Type): Type =
