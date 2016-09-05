@@ -7,7 +7,7 @@
         <groupId>org.jetbrains.dynatic</groupId>
         <version>0.1-SNAPSHOT</version>
     </parent>
-    <artifactId>benchmarks</artifactId>
+    <artifactId>dynatic-benchmarks</artifactId>
 
     <prerequisites>
         <maven>3.0.4</maven>

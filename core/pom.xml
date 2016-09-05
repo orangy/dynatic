@@ -9,7 +9,7 @@
         <groupId>org.jetbrains.dynatic</groupId>
         <version>0.1-SNAPSHOT</version>
     </parent>
-    <artifactId>core</artifactId>
+    <artifactId>dynatic-core</artifactId>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
