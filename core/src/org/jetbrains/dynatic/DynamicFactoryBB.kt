@@ -30,13 +30,13 @@ fun <Interface : Any, Source : Any> getOrGenerateFactoryBB(interfaceKlass: KClas
     return constructor
 }
 
-annotation class FunctionName()
-annotation class PropertyName()
-annotation class PropertyType()
+private annotation class FunctionName()
+private annotation class PropertyName()
+private annotation class PropertyType()
 
-open class SourceHolder<Source : Any>(val source: Source, val accessor: DynamicAccessor<Source>)
+private open class SourceHolder<Source : Any>(val source: Source, val accessor: DynamicAccessor<Source>)
 
-class Interceptor<Source : Any>() {
+private class Interceptor<Source : Any>() {
     @RuntimeType
     @BindingPriority(1)
     fun call(@This holder: SourceHolder<Source>, @FunctionName name: String, @PropertyType type: Type, @AllArguments args: Array<Any?>): Any? {
