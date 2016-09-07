@@ -41,12 +41,6 @@ open class MapBenchmarkGen {
     }
 }
 
-interface Numbers {
-    val count: Int
-    var size: Long
-    val percent: Double
-}
-
 inline fun <reified V : Any> Map<String, Any?>.mapCast(): V = implementDynamic<V, Map<String, Any?>>(MapAccessor)(this)
 
 object MapAccessor : DynamicAccessor<Map<String, Any?>> {
