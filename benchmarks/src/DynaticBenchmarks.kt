@@ -9,7 +9,7 @@ import java.util.concurrent.*
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
 @State(Scope.Thread)
-open class MapBenchmarkGen {
+open class DynaticBenchmarks {
     val map = mapOf("count" to 12, "size" to 42L, "percent" to 99.9)
 
     init {

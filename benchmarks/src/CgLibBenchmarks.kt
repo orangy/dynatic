@@ -9,7 +9,7 @@ import java.util.concurrent.*
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
 @State(Scope.Thread)
-open class CgBenchmark {
+open class CgLibBenchmarks {
     open class SourceHolder(val map: Map<String, *>)
 
     val enhancer = Enhancer().apply {
