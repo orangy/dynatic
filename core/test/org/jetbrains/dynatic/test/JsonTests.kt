@@ -42,7 +42,14 @@ object JsonAccessor : DynamicAccessor<JsonObject> {
             is JsonObject -> implementDynamic((type as Class<*>).kotlin, JsonObject::class, JsonAccessor)(element)
             is JsonPrimitive -> when {
                 element.isBoolean -> element.asBoolean
-                element.isNumber -> element.asNumber
+                element.isNumber -> {
+                    when (type) {
+                        Int::class.javaPrimitiveType, Int::class.javaObjectType -> element.asInt
+                        Long::class.javaPrimitiveType, Long::class.javaObjectType -> element.asLong
+                        Double::class.javaPrimitiveType, Double::class.javaObjectType -> element.asDouble
+                        else -> throw IllegalAccessException("property $name has unsupported type")
+                    }
+                }
                 element.isString -> element.asString
                 else -> throw IllegalAccessException("property $name has unsupported type")
             }

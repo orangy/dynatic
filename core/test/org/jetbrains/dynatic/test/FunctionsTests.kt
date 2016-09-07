@@ -21,8 +21,8 @@ class FunctionsTests {
             assertEquals("int(22)", log)
         }
         Register().apply {
-            val long = dynamic(this).getLong()
-            assertEquals("getLong()", log)
+            val long = dynamic(this).callLong()
+            assertEquals("callLong()", log)
             assertEquals(1, long)
         }
     }
@@ -32,7 +32,7 @@ interface Functions {
     fun empty()
     fun string(str: String)
     fun int(int: Int)
-    fun getLong(): Long
+    fun callLong(): Long
 }
 
 class Register {
@@ -45,7 +45,7 @@ object DummyAccessor : DynamicAccessor<Register> {
     override fun callFunction(source: Register, name: String, type: Type, values: Array<Any?>): Any? {
         source.log = "$name(${values.joinToString(",")})"
         return when (type) {
-            Long::class.javaObjectType -> 1L
+            Long::class.javaPrimitiveType, Long::class.javaObjectType -> 1L
             else -> Unit
         }
     }

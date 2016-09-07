@@ -19,3 +19,15 @@ MapBenchmarkGen.dynamicGenerateMapper  avgt    5  16.931 ± 1.252  ns/op
  MapBenchmarkGen.dynamicGenerateEach    avgt    5  89.939 ± 4.605  ns/op
  MapBenchmarkGen.dynamicGenerateInline  avgt    5  89.957 ± 2.180  ns/op
  MapBenchmarkGen.dynamicGenerateMapper  avgt    5  16.413 ± 0.758  ns/op
+
+
+
+/// dynatic
+DynaticBenchmarks.dynamicGenerateEach       avgt    5   66.915 ±  7.511  ns/op
+DynaticBenchmarks.dynamicGenerateInline     avgt    5   67.824 ±  7.350  ns/op
+DynaticBenchmarks.dynamicGenerateMapper     avgt    5   19.927 ±  2.355  ns/op
+
+/// BB
+DynaticBenchmarks.dynamicGenerateEach       avgt    5   63.545 ±   6.282  ns/op
+DynaticBenchmarks.dynamicGenerateInline     avgt    5   61.070 ±   1.518  ns/op
+DynaticBenchmarks.dynamicGenerateMapper     avgt    5   17.195 ±   0.377  ns/op
